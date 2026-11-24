@@ -1,61 +1,27 @@
-// Every tuning number and colour in one place. The playfield is a fixed 1280x720 logical area;
-// the renderer scales it to the window, so no rule below depends on the screen size.
+// Vice Harbor — world constants. Everything here is invented for this game:
+// the city of Puerto Brisa, its people, its cars and its story are original.
+export const TILE = 64;              // one city tile, in pixels
+export const BLOCKS_X = 14;          // blocks across
+export const BLOCKS_Y = 11;          // blocks down
+export const ROAD_EVERY = 5;         // a road every 5 tiles
+export const WORLD_W = BLOCKS_X * ROAD_EVERY * TILE;
+export const WORLD_H = BLOCKS_Y * ROAD_EVERY * TILE;
 
-export const FIELD = { width: 1280, height: 720, groundY: 664 };
+export const VIEW_W = 1280;
+export const VIEW_H = 720;
 
-/** The simulation's fixed step, in seconds: 60 updates a second whatever the display's rate. */
-export const STEP = 1 / 60;
+export const CAR_MODELS = [
+  { name: 'Comet Cabrio', color: '#e74c3c', speed: 265, accel: 210, grip: 3.4 },
+  { name: 'Bison Pickup', color: '#7f8c9b', speed: 215, accel: 165, grip: 2.8 },
+  { name: 'Palmera Sedan', color: '#3498db', speed: 240, accel: 185, grip: 3.1 },
+  { name: 'Tiburon Coupe', color: '#f1c40f', speed: 285, accel: 235, grip: 3.6 },
+  { name: 'Mercurio Van', color: '#95a5a6', speed: 195, accel: 150, grip: 2.5 },
+  { name: 'Duquesa Classic', color: '#9b59b6', speed: 225, accel: 170, grip: 2.9 },
+];
 
-export const PLAYER = {
-  width: 72,
-  height: 24,
-  speed: 560,
-  invulnerable: 1.5,
-};
+export const PED_NAMES = ['Luz', 'Marco', 'Iris', 'Tomas', 'Nadia', 'Felix', 'Rosa', 'Hugo', 'Alba', 'Dario', 'Mila', 'Santi'];
+export const PED_COLORS = ['#e67e22', '#1abc9c', '#e84393', '#f39c12', '#6c5ce7', '#00b894', '#d63031', '#0984e3', '#fd79a8', '#b2bec3'];
 
-export const LIVES = 3;
-
-export const BLOCK = {
-  minWidth: 40,
-  maxWidth: 110,
-  height: 36,
-  speed: 240,
-  speedPerLevel: 30,
-  speedJitter: 90,
-  interval: 0.55,
-  intervalScale: 0.88,
-  minInterval: 0.14,
-  dodgePoints: 1,
-};
-
-export const COIN = {
-  size: 24,
-  speed: 190,
-  speedPerLevel: 14,
-  interval: 1.4,
-  intervalJitter: 0.8,
-  points: 10,
-};
-
-/** Seconds of play per level, and the last level: speeds and spawn rates stop growing there. */
-export const LEVEL = { seconds: 12, max: 12 };
-
-/** How many falling things can exist at once; the pool is allocated once, at boot. */
-export const POOL_SIZE = 64;
-
-export const PALETTE = {
-  backdrop: '#11141b',
-  sky: '#1b1f2a',
-  ground: '#2a3040',
-  player: '#4fc3f7',
-  block: '#e5534b',
-  coin: '#f2c94c',
-  panel: '#252b38',
-  text: '#eef1f5',
-  muted: '#8b93a3',
-};
-
-export const FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
-
-/** Where the best score is kept between visits (this browser only). */
-export const BEST_KEY = 'block-dodger.best';
+export const CITY_NAME = 'Puerto Brisa';
+export const HERO_NAME = 'Nico Ferrer';
+export const FIXER_NAME = 'Marisol Vega';

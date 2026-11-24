@@ -1,79 +1,52 @@
-// The screenshot scenes behind ?shot=start|play|end. Each one plays the real rules forward from a
-// fresh world for a fixed number of steps, steered by a simple autopilot (look ahead each way the
-// paddle could move, keep clear of blocks, chase the lowest coin when that is safe), so the frame
-// is what a short game really looks like and the same seed always gives the same frame.
-import { FIELD, PLAYER, STEP } from './config.js';
-import { EVENT_OVER, KIND_BLOCK } from './world.js';
-import { SCREEN_OVER, SCREEN_PLAY, SCREEN_TITLE } from './render.js';
+// Deterministic scenes for the entry's screenshots: ?shot=<name>&seed=<n>
+// poses the game without any input, so each shot is a real render of the
+// game's own code — the title-side arrival, a talk with Marisol, a police
+// chase at three stars, and the warehouse pick-up.
+import { TILE, FIXER_NAME, HERO_NAME, CITY_NAME } from './config.js';
 
-const START_SECONDS = 5;
-const PLAY_SECONDS = 26;
-const END_LIMIT_SECONDS = 600;
-/**
- * How far ahead, in seconds, the autopilot checks each way it could move: the play scene's pilot
- * looks well ahead and keeps all its lives; the end scene's looks only a moment ahead, so it is
- * caught out once the blocks speed up, as a hurried player is.
- */
-const HORIZON_PLAY = 0.7;
-const HORIZON_END = 0.25;
-const SAMPLE = 1 / 30;
-const DIRECTIONS = [0, -1, 1];
-/** Extra room, each side, it keeps between the paddle and a block. */
-const MARGIN = 10;
+export function setupShot(G, name, helpers) {
+  const S = G.world.specials;
+  const P = G.player;
+  const { makeCar, spawnPed } = helpers;
 
-/** Seconds until moving in `direction` (-1, 0, 1) runs the paddle into a block; Infinity when it never does. */
-function timeToHit(state, direction, horizon) {
-  const player = state.player;
-  for (let t = SAMPLE; t <= horizon; t += SAMPLE) {
-    const x = Math.min(FIELD.width - player.width, Math.max(0, player.x + direction * PLAYER.speed * t));
-    for (let index = 0; index < state.items.length; index += 1) {
-      const item = state.items[index];
-      if (!item.active || item.kind !== KIND_BLOCK) continue;
-      const y = item.y + item.speed * t;
-      if (y + item.height > player.y && y < player.y + player.height && item.x < x + player.width + MARGIN && item.x + item.width > x - MARGIN) return t;
-    }
+  if (name === 'start') {
+    P.x = S.safehouse.door.x - 60; P.y = S.safehouse.door.y + 60; P.ang = -Math.PI / 2;
+    G.dialogue = { speaker: FIXER_NAME, text: `${HERO_NAME} lands in ${CITY_NAME} with $120 and a reputation. Marisol Vega — purple dress, cantina by the west market — has work. Go say hello.` };
+    G.dialogueT = 999;
   }
-  return Infinity;
-}
 
-/** Of the safe ways to move, the one toward the lowest coin (or the centre); else the one that is hit last. */
-function autopilot(state, horizon) {
-  const player = state.player;
-  let coin = null;
-  for (let index = 0; index < state.items.length; index += 1) {
-    const item = state.items[index];
-    if (item.active && item.kind !== KIND_BLOCK && (coin === null || item.y > coin.y)) coin = item;
+  if (name === 'play') {
+    P.x = S.cantina.door.x - 130; P.y = S.cantina.door.y + 46; P.ang = 0.4;
+    const c1 = makeCar(S.cantina.door.x + 90, S.cantina.door.y + 120, 0.2, 0, 'parked');
+    const c2 = makeCar(S.cantina.door.x - 220, S.cantina.door.y + 130, Math.PI, 2, 'parked');
+    G.cars.push(c1, c2);
   }
-  const target = coin === null ? FIELD.width / 2 : coin.x + coin.width / 2;
-  const centre = player.x + player.width / 2;
-  const wanted = target > centre + 8 ? 1 : target < centre - 8 ? -1 : 0;
-  let best = wanted;
-  let bestTime = timeToHit(state, wanted, horizon);
-  for (let index = 0; index < DIRECTIONS.length && bestTime !== Infinity; index += 1) {
-    const time = timeToHit(state, DIRECTIONS[index], horizon);
-    if (time > bestTime) {
-      bestTime = time;
-      best = DIRECTIONS[index];
-    }
-  }
-  return best;
-}
 
-/**
- * Set `world` to the named scene (start, play or end; any other name is start) and return the
- * screen to draw over it and the best score to show.
- */
-export function stageShot(name, world) {
-  world.reset();
-  if (name !== 'play' && name !== 'end') {
-    for (let index = 0; index < START_SECONDS / STEP; index += 1) world.step(STEP, 0, true);
-    return { screen: SCREEN_TITLE, best: 0 };
+  if (name === 'chase') {
+    const roadY = 5 * TILE + TILE / 2 + 14; // a horizontal avenue
+    const car = makeCar(6.2 * TILE * 5, roadY, 0, 3, 'player');
+    car.speed = 240;
+    G.cars.push(car);
+    P.car = car; car.driver = P;
+    P.x = car.x; P.y = car.y; P.ang = 0;
+    const cop1 = makeCar(car.x - 150, roadY - 26, 0.15, 2, 'police');
+    const cop2 = makeCar(car.x - 260, roadY + 30, -0.1, 2, 'police');
+    G.cars.push(cop1, cop2);
+    spawnPed(car.x + 150, roadY - 60);
+    spawnPed(car.x + 210, roadY + 70);
+    G.wanted = 3;
+    G.objective = 'Heat: lose the police (stars to zero)';
+    G.marker = null;
   }
-  const limit = name === 'end' ? END_LIMIT_SECONDS : PLAY_SECONDS;
-  const horizon = name === 'end' ? HORIZON_END : HORIZON_PLAY;
-  for (let index = 0; index < limit / STEP; index += 1) {
-    if (world.step(STEP, autopilot(world.state, horizon), false) & EVENT_OVER) break;
+
+  if (name === 'mission') {
+    P.x = S.warehouse.door.x - 40; P.y = S.warehouse.door.y + 30; P.ang = -0.6;
+    const van = makeCar(S.warehouse.door.x + 80, S.warehouse.door.y + 66, 0, 4, 'parked');
+    G.cars.push(van);
+    G.dialogue = { speaker: 'Warehouse hand', text: 'No names, no receipts. The hotel, fast — and friend, the patrols just woke up.' };
+    G.dialogueT = 999;
+    G.marker = { x: S.hotel.door.x, y: S.hotel.door.y };
+    G.objective = 'Package Run: deliver to Hotel Duquesa — 231s';
+    G.wanted = 2;
   }
-  const over = world.state.lives === 0;
-  return { screen: over ? SCREEN_OVER : SCREEN_PLAY, best: world.state.score };
 }
